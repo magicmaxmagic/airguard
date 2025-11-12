@@ -1,102 +1,30 @@
-import streamlit as st
-import requests
-import pandas as pd
-import plotly.express as px
-from datetime import datetime, timedelta
+import streamlit as st, requests, pandas as pd, time
 
-# Configuration
-API_URL = "http://localhost:8000"
+API_URL = "http://127.0.0.1:8000/events/"
+st.set_page_config(page_title="AirGuard Dashboard", layout="wide")
+st.title("🏠 AirGuard – Tableau de bord local")
 
-st.set_page_config(page_title="AirGuard Dashboard", page_icon="🔒", layout="wide")
+refresh = st.sidebar.slider("Rafraîchissement (s)", 1, 10, 3)
+limit = st.sidebar.slider("Limite affichage", 10, 200, 100)
+placeholder = st.empty()
 
-st.title("🔒 AirGuard - Intrusion Detection Dashboard")
-
-
-def fetch_events():
-    """Fetch events from the backend API."""
+while True:
     try:
-        response = requests.get(f"{API_URL}/events/")
-        if response.status_code == 200:
-            return response.json()
+        res = requests.get(API_URL)
+        if res.status_code == 200:
+            data = res.json()
+            df = pd.DataFrame(data)
+            if not df.empty:
+                df["timestamp"] = pd.to_datetime(df["timestamp"])
+                df = df.sort_values("timestamp", ascending=False).head(limit)
+                with placeholder.container():
+                    st.metric("Total alertes", len(df))
+                    st.line_chart(df, x="timestamp", y="value", height=300)
+                    st.dataframe(df)
+            else:
+                st.info("Aucune alerte reçue.")
         else:
-            st.error(f"Failed to fetch events: {response.status_code}")
-            return []
+            st.error(f"Erreur API {res.status_code}")
     except Exception as e:
-        st.error(f"Error connecting to API: {e}")
-        return []
-
-
-def main():
-    # Sidebar
-    st.sidebar.header("Settings")
-    refresh_interval = st.sidebar.slider("Refresh interval (seconds)", 5, 60, 10)
-    
-    if st.sidebar.button("Refresh Now"):
-        st.rerun()
-    
-    # Fetch events
-    events = fetch_events()
-    
-    if not events:
-        st.warning("No events found. Make sure the backend is running and the client is sending data.")
-        return
-    
-    # Convert to DataFrame
-    df = pd.DataFrame(events)
-    df['timestamp'] = pd.to_datetime(df['timestamp'])
-    
-    # Metrics
-    col1, col2, col3, col4 = st.columns(4)
-    
-    with col1:
-        st.metric("Total Events", len(df))
-    
-    with col2:
-        avg_noise = df['noise_level'].mean()
-        st.metric("Avg Noise Level", f"{avg_noise:.2f}")
-    
-    with col3:
-        max_noise = df['noise_level'].max()
-        st.metric("Max Noise Level", f"{max_noise:.2f}")
-    
-    with col4:
-        unique_devices = df['device_id'].nunique()
-        st.metric("Active Devices", unique_devices)
-    
-    # Charts
-    st.subheader("Noise Level Over Time")
-    fig = px.line(df, x='timestamp', y='noise_level', color='device_id',
-                  title='Noise Level Timeline',
-                  labels={'noise_level': 'Noise Level', 'timestamp': 'Time'})
-    st.plotly_chart(fig, use_container_width=True)
-    
-    # Distribution
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.subheader("Noise Level Distribution")
-        fig_hist = px.histogram(df, x='noise_level', nbins=30,
-                               title='Noise Level Distribution')
-        st.plotly_chart(fig_hist, use_container_width=True)
-    
-    with col2:
-        st.subheader("Events by Location")
-        location_counts = df['location'].value_counts()
-        fig_pie = px.pie(values=location_counts.values, names=location_counts.index,
-                        title='Events by Location')
-        st.plotly_chart(fig_pie, use_container_width=True)
-    
-    # Recent events table
-    st.subheader("Recent Events")
-    recent_df = df.sort_values('timestamp', ascending=False).head(10)
-    st.dataframe(recent_df[['timestamp', 'noise_level', 'location', 'device_id']], 
-                use_container_width=True)
-    
-    # Auto-refresh
-    import time
-    time.sleep(refresh_interval)
-    st.rerun()
-
-
-if __name__ == "__main__":
-    main()
+        st.warning(f"Connexion impossible : {e}")
+    time.sleep(refresh)

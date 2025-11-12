@@ -1,0 +1,6 @@
+{
+  "calibration_duration": 5,
+  "recalibration_interval": 300,
+  "smoothing_alpha": 0.3,
+  "debounce": 10
+}

@@ -16,6 +16,7 @@ airguard/
 ├── client/           # Noise detection client
 │   ├── noise_detector.py  # Client script to detect noise
 │   └── requirements.txt
+|.  |__ config.json
 │
 └── dashboard/        # Streamlit dashboard
     ├── app.py        # Dashboard application
