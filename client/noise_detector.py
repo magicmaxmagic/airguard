@@ -14,6 +14,8 @@ from dotenv import load_dotenv
 import sounddevice as sd
 import logging
 import json
+import threading
+
 
 
 # ==========================
@@ -36,6 +38,8 @@ class Config:
     @staticmethod
     def load():
         load_dotenv()
+        if not os.getenv("AIRGUARD_API_URL"):
+            logger.warning("⚠️ Aucun fichier .env détecté. Utilisation des valeurs par défaut.")
 
         defaults = {
             "api_url": os.getenv("AIRGUARD_API_URL", "http://127.0.0.1:8000/events/"),
@@ -45,7 +49,8 @@ class Config:
             "recalibration_interval": 300,  # 5 minutes
             "smoothing_alpha": 0.3,
         }
-
+        if not defaults["api_url"].endswith("/events/"):
+            logger.warning("⚠️ L’API_URL semble incorrecte. Elle doit se terminer par /events/")
         # surcharge via config.json
         if os.path.exists("config.json"):
             try:
@@ -214,8 +219,10 @@ class NoiseDetector:
             "timestamp": datetime.utcnow().isoformat(),
         }
         try:
+            logger.debug(f"📤 Envoi JSON → {self.config.api_url} : {payload}")
             r = requests.post(self.config.api_url, json=payload, timeout=3)
             logger.info(f"🚨 Alerte envoyée ({r.status_code}) - {level_db:.1f} dB")
+            logger.debug(f"Réponse du backend: {r.text}")
         except Exception as e:
             logger.error(f"Erreur d’envoi : {e}")
 
@@ -269,6 +276,9 @@ if __name__ == "__main__":
         detector.calibrate(cfg.calibration_duration)
         logger.info("✅ Calibration terminée. Fin du mode --calibrate-only.")
         sys.exit(0)
+    if "--debug" in sys.argv:
+        logger.setLevel(logging.DEBUG)
+        logger.debug("🩵 Mode DEBUG activé — affichage complet des seuils et paquets envoyés.")
 
     try:
         audio = AudioHandler()

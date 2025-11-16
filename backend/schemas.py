@@ -1,21 +1,16 @@
 from pydantic import BaseModel
 from datetime import datetime
-from typing import Optional
 
-
-class NoiseEventBase(BaseModel):
-    noise_level: float
-    location: str
+class EventBase(BaseModel):
     device_id: str
-
-
-class NoiseEventCreate(NoiseEventBase):
-    pass
-
-
-class NoiseEvent(NoiseEventBase):
-    id: int
+    type: str
+    value: float
     timestamp: datetime
 
+class EventCreate(EventBase):
+    pass
+
+class Event(EventBase):
+    id: int
     class Config:
-        from_attributes = True
+        orm_mode = True

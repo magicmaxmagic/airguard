@@ -1,15 +1,15 @@
-from sqlalchemy import Column, Integer, Float, String, DateTime
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy import Column, Integer, String, Float, DateTime
 from datetime import datetime
+from .database import Base
 
-Base = declarative_base()
-
-
-class NoiseEvent(Base):
-    __tablename__ = "noise_events"
+class Event(Base):
+    __tablename__ = "events"
 
     id = Column(Integer, primary_key=True, index=True)
+    device_id = Column(String, index=True)
+    type = Column(String, default="noise")
+    value = Column(Float)
     timestamp = Column(DateTime, default=datetime.utcnow)
-    noise_level = Column(Float)
-    location = Column(String)
-    device_id = Column(String)
+
+    def __repr__(self):
+        return f"<Event id={self.id} device={self.device_id} value={self.value:.2f}dB @ {self.timestamp}>"

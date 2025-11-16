@@ -2,5 +2,6 @@
   "calibration_duration": 5,
   "recalibration_interval": 300,
   "smoothing_alpha": 0.3,
-  "debounce": 10
+  "debounce": 10,
+  "api_url": "http://127.0.0.1:8000/events/"
 }
